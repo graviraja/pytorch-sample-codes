@@ -3,3 +3,4 @@
 
 1. basics.py : contains the simple 2 layer network implemented in numpy and  pytorch
 2. static_graph.py : contains the same 2 layer network implemented in tensorflow
+3. classify.py : char-rnn based classification model to classify surnames for 18 languages
