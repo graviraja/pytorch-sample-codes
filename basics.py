@@ -247,3 +247,46 @@ for epoch in range(500):
 
     # weight update using the optimizer
     optimizer.step()
+
+
+# ######################################################################## #
+# Implementing the above 2 layer network with 1 hidden layer using classes #
+# ######################################################################## #
+print('------------------------------------------')
+print("Training the network using pytorch classes")
+print('------------------------------------------')
+
+
+class TwoLayerNet(torch.nn.Module):
+    def __init__(self, D_in, H, D_out):
+        super(TwoLayerNet, self).__init__()
+        self.linear1 = torch.nn.Linear(D_in, H)
+        self.linear2 = torch.nn.Linear(H, D_out)
+
+    def forward(self, x):
+        h = self.linear1(x)
+        h_relu = h.clamp(min=0)
+        y_pred = self.linear2(h_relu)
+        return y_pred
+
+learning_rate = 1e-4
+model = TwoLayerNet(D_in, H, D_out)
+criterion = torch.nn.MSELoss(reduction='sum')
+optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+
+# create a random input of shape [batch_size, input_dim]
+x = torch.randn(N, D_in, device=device, dtype=dtype)
+# create a random output of shape [batch_size, output_dim]
+y = torch.randn(N, D_out, device=device, dtype=dtype)
+for epoch in range(500):
+    # forward pass
+    y_pred = model(x)
+    loss = criterion(y_pred, y)
+
+    if epoch % 50 == 0:
+        print(f"epoch : {epoch}, loss : {loss.item()}")
+
+    # Zero gradients, perform a backward pass, and update the weights.
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
