@@ -160,3 +160,47 @@ for epoch in range(500):
         # manually zero the gradients after updating the weights
         w1.grad.zero_()
         w2.grad.zero_()
+
+# ################################################################################### #
+# Implementing the above 2 layer network with 1 hidden layer using pytorch nn package #
+# ################################################################################### #
+print('--------------------------------------------')
+print("Training the network using pytorch nn module")
+print('--------------------------------------------')
+
+# create a random input of shape [batch_size, input_dim]
+x = torch.randn(N, D_in, device=device, dtype=dtype)
+# create a random output of shape [batch_size, output_dim]
+y = torch.randn(N, D_out, device=device, dtype=dtype)
+
+# define the model using torch.nn. nn.Sequential is module contains other modules
+# and applies them in sequence to produce the output.
+# nn.Linear computes output from input using a linear function
+model = torch.nn.Sequential(
+    torch.nn.Linear(D_in, H),
+    torch.nn.ReLU(),
+    torch.nn.Linear(H, D_out)
+)
+
+# loss function
+loss_fn = torch.nn.MSELoss(reduction='sum')
+learning_rate = 1e-4
+
+for epoch in range(500):
+    # forward pass
+    y_pred = model(x)
+    loss = loss_fn(y_pred, y)
+
+    if epoch % 50 == 0:
+        print(f"epoch : {epoch}, loss : {loss.item()}")
+
+    # zero the gradients before the backward pass
+    model.zero_grad()
+
+    # backward pass
+    loss.backward()
+
+    # weight update
+    with torch.no_grad():
+        for param in model.parameters():
+            param -= learning_rate * param.grad
