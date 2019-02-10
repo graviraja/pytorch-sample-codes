@@ -1,5 +1,6 @@
 '''This code contains the implementation of simple VAE
 
+Refer to the blog post here: https://graviraja.github.io/vanillavae/
 '''
 import torch
 import torch.nn as nn
@@ -14,11 +15,12 @@ import matplotlib.pyplot as plt
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-BATCH_SIZE = 64
-N_EPOCHS = 10
-INPUT_DIM = 28 * 28
-HIDDEN_DIM = 256
-LATENT_DIM = 20
+BATCH_SIZE = 64         # number of data points in each batch
+N_EPOCHS = 10           # times to run the model on complete data
+INPUT_DIM = 28 * 28     # size of each input
+HIDDEN_DIM = 256        # hidden dimension
+LATENT_DIM = 20         # latent vector dimension
+lr = 1e-3               # learning rate
 
 transforms = transforms.Compose([transforms.ToTensor()])
 train_dataset = datasets.MNIST(
@@ -41,7 +43,16 @@ lr = 1e-3
 
 
 class Encoder(nn.Module):
+    ''' This the encoder part of VAE
+
+    '''
     def __init__(self, input_dim, hidden_dim, z_dim):
+        '''
+        Args:
+            input_dim: A integer indicating the size of input (in case of MNIST 28 * 28).
+            hidden_dim: A integer indicating the size of hidden dimension.
+            z_dim: A integer indicating the latent dimension.
+        '''
         super().__init__()
 
         self.linear = nn.Linear(input_dim, hidden_dim)
@@ -52,27 +63,47 @@ class Encoder(nn.Module):
         # x is of shape [batch_size, input_dim]
 
         hidden = F.relu(self.linear(x))
+        # hidden is of shape [batch_size, hidden_dim]
         z_mu = self.mu(hidden)
+        # z_mu is of shape [batch_size, latent_dim]
         z_var = self.var(hidden)
+        # z_var is of shape [batch_size, latent_dim]
 
         return z_mu, z_var
 
 
 class Decoder(nn.Module):
+    ''' This the decoder part of VAE
+
+    '''
     def __init__(self, z_dim, hidden_dim, output_dim):
+        '''
+        Args:
+            z_dim: A integer indicating the latent size.
+            hidden_dim: A integer indicating the size of hidden dimension.
+            output_dim: A integer indicating the output dimension (in case of MNIST it is 28 * 28)
+        '''
         super().__init__()
 
         self.linear = nn.Linear(z_dim, hidden_dim)
         self.out = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
+        # x is of shape [batch_size, latent_dim]
+
         hidden = F.relu(self.linear(x))
+        # hidden is of shape [batch_size, hidden_dim]
+
         predicted = torch.sigmoid(self.out(hidden))
+        # predicted is of shape [batch_size, output_dim]
         return predicted
 
 
 class VAE(nn.Module):
     def __init__(self, enc, dec):
+        ''' This the VAE, which takes a encoder and decoder.
+
+        '''
         super().__init__()
 
         self.enc = enc
@@ -82,6 +113,7 @@ class VAE(nn.Module):
         # encode
         z_mu, z_var = self.enc(x)
 
+        # sample from the distribution having latent parameters z_mu, z_var
         # reparameterize
         std = torch.exp(z_var / 2)
         eps = torch.randn_like(std)
@@ -91,46 +123,80 @@ class VAE(nn.Module):
         predicted = self.dec(x_sample)
         return predicted, z_mu, z_var
 
+# encoder
 encoder = Encoder(INPUT_DIM, HIDDEN_DIM, LATENT_DIM)
+
+# decoder
 decoder = Decoder(LATENT_DIM, HIDDEN_DIM, INPUT_DIM)
+
+# vae
 model = VAE(encoder, decoder).to(device)
 
+# optimizer
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
 
 def train():
+    # set the train mode
     model.train()
+
+    # loss of the epoch
     train_loss = 0
 
     for i, (x, _) in enumerate(train_iterator):
+        # reshape the data into [batch_size, 784]
         x = x.view(-1, 28 * 28)
         x = x.to(device)
+
+        # update the gradients to zero
         optimizer.zero_grad()
+
+        # forward pass
         x_sample, z_mu, z_var = model(x)
 
+        # reconstruction loss
         recon_loss = F.binary_cross_entropy(x_sample, x, size_average=False)
+
+        # kl divergence loss
         kl_loss = 0.5 * torch.sum(torch.exp(z_var) + z_mu**2 - 1.0 - z_var)
+
+        # total loss
         loss = recon_loss + kl_loss
+
+        # backward pass
         loss.backward()
         train_loss += loss.item()
+
+        # update the weights
         optimizer.step()
 
     return train_loss
 
 
 def test():
+    # set the evaluation mode
     model.eval()
+
+    # test loss for the data
     test_loss = 0
 
+    # we don't need to track the gradients, since we are not updating the parameters during evaluation / testing
     with torch.no_grad():
         for i, (x, _) in enumerate(test_iterator):
+            # reshape the data
             x = x.view(-1, 28 * 28)
             x = x.to(device)
+
+            # forward pass
             x_sample, z_mu, z_var = model(x)
 
+            # reconstruction loss
             recon_loss = F.binary_cross_entropy(x_sample, x, size_average=False)
+
+            # kl divergence loss
             kl_loss = 0.5 * torch.sum(torch.exp(z_var) + z_mu**2 - 1.0 - z_var)
 
+            # total loss
             loss = recon_loss + kl_loss
             test_loss += loss.item()
 
