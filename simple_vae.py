@@ -19,7 +19,7 @@ BATCH_SIZE = 64         # number of data points in each batch
 N_EPOCHS = 10           # times to run the model on complete data
 INPUT_DIM = 28 * 28     # size of each input
 HIDDEN_DIM = 256        # hidden dimension
-LATENT_DIM = 20         # latent vector dimension
+LATENT_DIM = 50         # latent vector dimension
 lr = 1e-3               # learning rate
 
 transforms = transforms.Compose([transforms.ToTensor()])
@@ -230,5 +230,6 @@ img = reconstructed_img.view(28, 28).data
 
 print(z.shape)
 print(img.shape)
-
+plt.figure()
 plt.imshow(img, cmap='gray')
+plt.show()
