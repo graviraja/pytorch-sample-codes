@@ -137,8 +137,35 @@ assert (output[0, :, hidden_dim:] == hidden[-1]).all(), "Last hidden_dim of outp
 
 
 class Multi_Layer_Bi_Directional_RNN(nn.Module):
-    def __init__(self):
+    def __init__(self, input_dim, embedding_dim, hidden_dim, n_layers, bidirectional):
         super().__init__()
+        self.embedding = nn.Embedding(input_dim, embedding_dim)
+        self.rnn = nn.RNN(embedding_dim, hidden_dim, num_layers=n_layers, bidirectional=bidirectional)
 
-    def forward(self):
-        pass
+    def forward(self, input):
+        # input shape => [max_len, batch_size]
+
+        embed = self.embedding(input)
+        # embed shape => [max_len, batch_size, embedding_dim]
+
+        output, hidden = self.rnn(embed)
+        # output shape => [max_len, batch_size, hidden_size * 2] => since forward and backward outputs are stacked
+        # hidden shape => [num_layers * 2, batch_size, hidden_size]
+
+        return output, hidden
+
+n_layers = 2
+bidirectional = True
+model = Multi_Layer_Bi_Directional_RNN(input_dim, embedding_dim, hidden_dim, n_layers, bidirectional)
+output, hidden = model(sequence_tensor)
+
+print(f"Input shape is : {sequence_tensor.shape}")
+print(f"Output shape is : {output.shape}")
+print(f"Hidden shape is : {hidden.shape}")
+
+batch_size = sequence_tensor.shape[1]
+hidden = hidden.view(n_layers, 2, batch_size, hidden_dim)
+print(f"Reshaped hidden shape is : {hidden.shape}")
+
+assert (output[-1, :, :hidden_dim] == hidden[n_layers - 1][0]).all(), "First hidden_dim of output at last time step must be same as Final Forward Hidden state of final layer in case of Multi layer bi-directional RNN"
+assert (output[0, :, hidden_dim:] == hidden[n_layers - 1][1]).all(), "Last hidden_dim of output at initial time step must be same as Final Backward Hidden state of final layer in case of Multi layer bi-directional RNN"
