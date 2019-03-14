@@ -63,16 +63,16 @@ class Single_Layer_Uni_Directional_RNN(nn.Module):
 
         return output, hidden
 
-# n_layers = 1
-# bidirectional = False
-# model = Single_Layer_Uni_Directional_RNN(input_dim, embedding_dim, hidden_dim, n_layers, bidirectional)
-# output, hidden = model(sequence_tensor)
+n_layers = 1
+bidirectional = False
+model = Single_Layer_Uni_Directional_RNN(input_dim, embedding_dim, hidden_dim, n_layers, bidirectional)
+output, hidden = model(sequence_tensor)
 
-# print(f"Input shape is : {sequence_tensor.shape}")
-# print(f"Output shape is : {output.shape}")
-# print(f"Hidden shape is : {hidden.shape}")
+print(f"Input shape is : {sequence_tensor.shape}")
+print(f"Output shape is : {output.shape}")
+print(f"Hidden shape is : {hidden.shape}")
 
-# assert (output[-1, :, :] == hidden[0]).all(), "Final output must be same as Hidden state in case of Single layer uni-directional RNN"
+assert (output[-1, :, :] == hidden[0]).all(), "Final output must be same as Hidden state in case of Single layer uni-directional RNN"
 
 
 class Multi_Layer_Uni_Directional_RNN(nn.Module):
@@ -106,11 +106,34 @@ assert (output[-1, :, :] == hidden[-1]).all(), "Final output must be same as Fin
 
 
 class Single_Layer_Bi_Directional_RNN(nn.Module):
-    def __init__(self):
+    def __init__(self, input_dim, embedding_dim, hidden_dim, n_layers, bidirectional):
         super().__init__()
+        self.embedding = nn.Embedding(input_dim, embedding_dim)
+        self.rnn = nn.RNN(embedding_dim, hidden_dim, num_layers=n_layers, bidirectional=bidirectional)
 
-    def forward(self):
-        pass
+    def forward(self, input):
+        # input shape => [max_len, batch_size]
+
+        embed = self.embedding(input)
+        # embed shape => [max_len, batch_size, embedding_dim]
+
+        output, hidden = self.rnn(embed)
+        # output shape => [max_len, batch_size, hidden_size * 2] => since forward and backward outputs are stacked
+        # hidden shape => [2, batch_size, hidden_size]
+
+        return output, hidden
+
+n_layers = 1
+bidirectional = True
+model = Single_Layer_Bi_Directional_RNN(input_dim, embedding_dim, hidden_dim, n_layers, bidirectional)
+output, hidden = model(sequence_tensor)
+
+print(f"Input shape is : {sequence_tensor.shape}")
+print(f"Output shape is : {output.shape}")
+print(f"Hidden shape is : {hidden.shape}")
+
+assert (output[-1, :, :hidden_dim] == hidden[0]).all(), "First hidden_dim of output at last time step must be same as Final Forward Hidden state in case of Single layer bi-directional RNN"
+assert (output[0, :, hidden_dim:] == hidden[-1]).all(), "Last hidden_dim of output at initial time step must be same as Final Backward Hidden state in case of Single layer bi-directional RNN"
 
 
 class Multi_Layer_Bi_Directional_RNN(nn.Module):
